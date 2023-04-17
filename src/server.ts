@@ -10,7 +10,7 @@ const server = (port: number) =>
   });
 
 if (process.env.NODE_ENV === "dev") {
-  server(appPort);
+  server(appPort as number);
 }
 
 export default server;

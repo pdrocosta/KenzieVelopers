@@ -1,6 +1,5 @@
 import express, { Application } from "express";
 import "dotenv/config";
-import { checkDeveloperExists } from "./middleware";
 import { createDeveloper, createProject, deleteDev, deleteProject, deleteProjectTech, getDeveloperByID, getProjectById, patchIDInfos, patchProject, postTech, updateDev } from "./logic";
 
 const app: Application = express();
