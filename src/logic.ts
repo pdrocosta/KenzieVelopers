@@ -20,13 +20,19 @@ import {
   ITechProjectQRes,
 } from "./interfaces";
 import { QueryResult } from "pg";
-import { checkDeveloperExists, checkProjectExists } from "./middleware";
+import { checkDeveloperExists, checkEmailExists, checkProjectExists } from "./middleware";
 
 const createDeveloper = async (
   request: Request,
   response: Response
 ): Promise<Response<IDevCreateRes>> => {
   const payload: IDeveloper = request.body;
+  const emailExists = await checkEmailExists(payload.email);
+
+
+  if (emailExists!) {
+    return response.status(404).json({ message: "Email already registered." });
+  }
 
   const queryString: string = format(
     `
