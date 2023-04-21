@@ -17,22 +17,22 @@ import {
   IProjectResponse,
   IProjectWithTechnologies,
   IProjectWithTechsQRes,
+  ITechPRojectQuery,
+  ITechPRojectQuery2,
   ITechProjectQRes,
 } from "./interfaces";
 import { QueryResult } from "pg";
-import { checkDeveloperExists, checkEmailExists, checkProjectExists } from "./middleware";
+import {
+  checkDeveloperExists,
+  checkEmailExists,
+  checkProjectExists,
+} from "./middleware";
 
 const createDeveloper = async (
   request: Request,
   response: Response
 ): Promise<Response<IDevCreateRes>> => {
   const payload: IDeveloper = request.body;
-  const emailExists = await checkEmailExists(payload.email);
-
-
-  if (emailExists!) {
-    return response.status(404).json({ message: "Email already registered." });
-  }
 
   const queryString: string = format(
     `
@@ -65,12 +65,6 @@ const getDeveloperByID = async (
     Number(id)
   );
 
-  const developerExists = await checkDeveloperExists(Number(id));
-
-  if (developerExists!) {
-    return response.status(404).json({ message: "Developer not found." });
-  }
-
   const queryResult: IDevIDResultQuery = await client.query(queryString);
 
   const devByID = queryResult.rows[0];
@@ -83,12 +77,6 @@ const updateDev = async (
 ): Promise<Response<IDeveloper>> => {
   const id: number = parseInt(request.params.id);
   const payload: Omit<IDeveloper, "id"> = request.body;
-
-  const developerExists = await checkDeveloperExists(Number(id));
-
-  if (developerExists!) {
-    return response.status(404).json({ message: "Developer not found." });
-  }
 
   const queryString: string = format(
     `
@@ -113,12 +101,6 @@ const deleteDev = async (
 ): Promise<Response> => {
   const { id } = request.params;
 
-  const developerExists = await checkDeveloperExists(Number(id));
-
-  if (developerExists!) {
-    return response.status(404).json({ message: "Developer not found." });
-  }
-
   const queryString = format(
     `
         DELETE FROM developers
@@ -130,43 +112,38 @@ const deleteDev = async (
   const deletedDev: QueryResult = await client.query(queryString);
   return response.status(204).send();
 };
-const patchIDInfos = async (
+const postIDInfos = async (
   request: Request,
   response: Response
 ): Promise<Response<IDeveloperInfo>> => {
   const { id } = request.params;
   const payload: IDeveloperInfo = request.body;
+  console.log(request.body);
 
-  const developerExists = await checkDeveloperExists(Number(id));
-
-  if (!developerExists) {
-    return response.status(404).json({ message: "Developer not found." });
-  }
-
-  if (!["Windows", "Linux", "MacOS"].includes(payload.preferredOS)) {
+  const validOSOptions = ["Windows", "Linux", "MacOS"];
+  if (!validOSOptions.includes(payload.preferredos)) {
     return response.status(400).json({
       message: "Invalid OS option.",
-      options: ["Windows", "Linux", "MacOS"],
+      options: validOSOptions,
     });
   }
 
   const queryString: string = format(
     `
-      UPDATE developers_infos
-      SET (developerId, developerSince, preferredOS) = ($1, $2, $3)
-      WHERE developerid = $4
+      UPDATE developer_infos
+      SET (%I) = (%L)
+      WHERE developerid =(%L)
       RETURNING *;
     `,
-    id,
-    payload.developerSince,
-    payload.preferredOS,
+    Object.keys(payload),
+    Object.values(payload),
     id
   );
 
   const queryResult: IDeveloperInfoQRes = await client.query(queryString);
 
   const devInfos: IDeveloperInfo = queryResult.rows[0];
-
+  console.log(devInfos, "aqui", payload, request.body);
   return response.status(201).send(devInfos);
 };
 const createProject = async (
@@ -174,12 +151,6 @@ const createProject = async (
   response: Response
 ): Promise<Response<IProjectResponse>> => {
   const payload: IProject = request.body;
-
-  const developerExists = await checkDeveloperExists(payload.developerId);
-
-  if (!developerExists) {
-    return response.status(404).json({ message: "Developer not found" });
-  }
 
   const queryString: string = format(
     `
@@ -202,12 +173,7 @@ const getProjectById = async (
 ): Promise<Response<Array<IProjectWithTechnologies>>> => {
   const { id } = request.params;
 
-  const projectExists = await checkProjectExists(Number(id));
-
-  if (!projectExists) {
-    return response.status(404).json({ message: "Project not found." });
-  }
-
+  console.log(id);
   const queryProjectTechs: string = format(
     `
       SELECT 
@@ -222,7 +188,7 @@ const getProjectById = async (
       
       LEFT JOIN technologies t ON t.id = pt.technologyId
       
-      WHERE pt.projectId = %L;
+      WHERE pt.projectId = (%L);
     `,
     Number(id)
   );
@@ -230,8 +196,8 @@ const getProjectById = async (
   const queryProjectTechsResult: IProjectQRes = await client.query(
     queryProjectTechs
   );
-
-  return response.status(200).json(queryProjectTechsResult.rows);
+  console.log(queryProjectTechsResult.rows[0]);
+  return response.status(200).json(queryProjectTechsResult.rows[0]);
 };
 const patchProject = async (
   request: Request,
@@ -239,17 +205,6 @@ const patchProject = async (
 ): Promise<Response<IProject>> => {
   const { id } = request.params;
   const payload: INewProjInfos = request.body;
-  const developerExists = await checkDeveloperExists(payload.developerId);
-
-  if (!developerExists) {
-    return response.status(404).json({ message: "Developer not found." });
-  }
-
-  const projectExists = await checkProjectExists(Number(id));
-
-  if (!projectExists) {
-    return response.status(404).json({ message: "Project not found." });
-  }
 
   const queryString: string = format(
     `
@@ -276,16 +231,10 @@ const deleteProject = async (
 ): Promise<Response> => {
   const { id } = request.params;
 
-  const projectExists = await checkProjectExists(Number(id));
-
-  if (projectExists!) {
-    return response.status(404).json({ message: "Project not found." });
-  }
-
   const queryString = format(
     `
         DELETE FROM projects
-        WHERE id = %L;
+        WHERE id = (%L);
       `,
     Number(id)
   );
@@ -299,12 +248,6 @@ const postTech = async (
 ): Promise<Response<IProjectDataAndTech>> => {
   const { id } = request.params;
   const { name } = request.body;
-
-  const projectExists = await checkProjectExists(Number(id));
-
-  if (!projectExists) {
-    return response.status(404).json({ message: "Project not found." });
-  }
 
   const validTechnologies = [
     "JavaScript",
@@ -327,8 +270,7 @@ const postTech = async (
   const queryTechnologieName = format(
     `
         SELECT * FROM technologies
-        WHERE name = %L
-        RETURNING *;
+        WHERE name = (%L);
       `,
     name
   );
@@ -336,7 +278,7 @@ const postTech = async (
   const queryResultName: QueryResult = await client.query(queryTechnologieName);
   const techInfos = queryResultName.rows[0];
 
-  if (!techInfos) {
+  if (techInfos.rowCount === 0) {
     return response.status(400).json({
       message: "Technology not found.",
       options: validTechnologies,
@@ -345,9 +287,8 @@ const postTech = async (
 
   const queryCheckExistingName = format(
     `
-        SELECT * FROM project_technologies
-        WHERE technologyId = %L
-        RETURNING *;
+        SELECT * FROM projects_technologies
+        WHERE technologyid = (%L);
       `,
     techInfos.id
   );
@@ -355,7 +296,7 @@ const postTech = async (
   const queryResultExistingName: QueryResult = await client.query(
     queryCheckExistingName
   );
-  const existingTechInfo = queryResultExistingName.rows[0];
+  const existingTechInfo = queryResultExistingName.rowCount > 0;
 
   if (existingTechInfo) {
     return response.status(409).json({
@@ -363,24 +304,33 @@ const postTech = async (
     });
   }
 
+  const queryInput = [techInfos.id, id, new Date()];
+  const queryKeys = ["projectid", "technologyid"];
+
   const queryString: string = format(
-    `
-    INSERT INTO project_technologies (projectId, technologyId)
-    VALUES (%L, %L)
-    RETURNING project_technologies.id, technologies.name AS technologyName,
-    projects.id AS projectId, projects.name AS projectName,
-    projects.description AS projectDescription,
-    projects.estimatedTime AS projectEstimatedTime,
-    projects.repository AS projectRepository,
-    projects.startDate AS projectStartDate,
-    projects.endDate AS projectEndDate;
-    `,
+    `INSERT INTO
+    projects_technologies("technologyid", "projectid", "addedin")
+VALUES
+   ( (%L),  (%L),  (%L));`,
     id,
-    techInfos.id
+    techInfos.id,
+    new Date()
   );
 
-  const queryResult: ITechProjectQRes = await client.query(queryString);
-  const newProjectTech: IProjectDataAndTech = queryResult.rows[0];
+  const queryResult: ITechPRojectQuery2 = await client.query(queryString);
+  const newProjectTech: ITechPRojectQuery = queryResult.rows[0];
+
+  const queryStringResponse:
+  INSERT INTO projects (projectid, technologyid)
+  VALUES (%L)
+  RETURNING projects_technologies.id, technologies.name AS technologyname,
+  projects.id AS projectid, projects.name AS projectname,
+  projects.description AS projectdescription,
+  projects.estimatedtime AS projectestimatedtime,
+  projects.repository AS projectrepository,
+  projects.startdate AS projectstartdate,
+  projects.enddate AS projectenddate;
+  `)
 
   return response.status(201).send(newProjectTech);
 };
@@ -389,11 +339,6 @@ const deleteProjectTech = async (
   response: Response
 ): Promise<Response> => {
   const { id, name } = request.params;
-
-  const projectExists = await checkProjectExists(Number(id));
-  if (!projectExists) {
-    return response.status(404).json({ message: "Project not found." });
-  }
 
   const validTechnologies = [
     "JavaScript",
@@ -416,7 +361,7 @@ const deleteProjectTech = async (
   const queryTechnologieName = format(
     `
         SELECT FROM technologies
-        WHERE name = %L
+        WHERE name = (%L)
         RETURNING *;
       `,
     name
@@ -428,7 +373,7 @@ const deleteProjectTech = async (
   const queryCheckExistingName = format(
     `
         SELECT FROM project_technologies
-        WHERE technologyId = %L AND projectId = %L
+        WHERE technologyId = (%L) AND projectId = (%L)
         RETURNING *;
       `,
     techInfos.id,
@@ -438,7 +383,7 @@ const deleteProjectTech = async (
   const queryResultExistingName: QueryResult = await client.query(
     queryCheckExistingName
   );
-  const existingTech: ITechProjectQRes = queryResultExistingName.rows[0];
+  const existingTech = queryResultExistingName.rowCount > 0;
 
   if (!existingTech) {
     return response.status(400).json({
@@ -449,7 +394,7 @@ const deleteProjectTech = async (
   const queryString: string = format(
     `
         DELETE FROM project_technologies
-        WHERE projectId = %L AND technologyId = %L;
+        WHERE projectId = (%L) AND technologyId = (%L);
       `,
     id,
     techInfos.id
@@ -459,11 +404,11 @@ const deleteProjectTech = async (
   return response.status(204).send();
 };
 export {
+  postIDInfos,
   createDeveloper,
   getDeveloperByID,
   updateDev,
   deleteDev,
-  patchIDInfos,
   createProject,
   getProjectById,
   patchProject,
@@ -471,3 +416,14 @@ export {
   postTech,
   deleteProjectTech,
 };
+/* `
+    INSERT INTO projects (projectid, technologyid)
+    VALUES (%L)
+    RETURNING projects_technologies.id, technologies.name AS technologyname,
+    projects.id AS projectid, projects.name AS projectname,
+    projects.description AS projectdescription,
+    projects.estimatedtime AS projectestimatedtime,
+    projects.repository AS projectrepository,
+    projects.startdate AS projectstartdate,
+    projects.enddate AS projectenddate;
+    `*/

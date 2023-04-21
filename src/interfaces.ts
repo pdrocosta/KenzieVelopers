@@ -8,8 +8,8 @@ export interface IDeveloper {
 
 export interface IDeveloperInfo {
   id: number;
-  developerSince: Date;
-  preferredOS: "Windows" | "Linux" | "MacOS";
+  developersince: Date;
+  preferredos: "Windows" | "Linux" | "MacOS";
   developerId: number;
 }
 export type IDeveloperResult = QueryResult<IDeveloper>;
@@ -21,31 +21,31 @@ export type IDevCreateQRes = QueryResult<IDevCreateRes>;
 export type IDeveloperInfoQRes = QueryResult<IDeveloperInfo>;
 
 export type IDevByIDResult = {
-  developerId: number;
-  developerName: string;
-  developerEmail: string;
-  developerInfoDeveloperSince: Date | null;
-  developerInfoPreferredOS: string | null;
+  developerid: number;
+  developername: string;
+  developeremail: string;
+  developerinfodevelopersince: Date | null;
+  developerinfopreferredos: string | null;
 };
 
 export type IDevIDResultQuery = QueryResult<IDevByIDResult[]>;
 
 export interface ITechnologyData {
-  technologyId: number;
-  technologyName: string;
+  technologyid: number;
+  technologyname: string;
 }
 
 export type ITechnologyDataQRes = QueryResult<ITechnologyData>;
 
 export interface IProjectWithTechnologies {
-  projectId: number;
-  projectName: string;
-  projectDescription: string;
-  projectEstimatedTime: string;
-  projectRepository: string;
-  projectStartDate: string;
-  projectEndDate?: string;
-  projectDeveloperId: number;
+  projectid: number;
+  projectname: string;
+  projectdescription: string;
+  projectestimatedtime: string;
+  projectrepository: string;
+  projectstartdate: string;
+  projectenddate?: string;
+  projectdeveloperid: number;
   technologies: ITechnologyData[];
 }
 
@@ -54,11 +54,11 @@ export type IProjectWithTechsQRes = QueryResult<IProjectWithTechnologies>;
 export type IProject = {
   name: string;
   description: string;
-  estimatedTime: string;
+  estimatedtime: string;
   repository: string;
-  startDate: string;
-  endDate?: string;
-  developerId: number;
+  startdate: Date;
+  enddate?: Date;
+  developerid: number;
 };
 export interface IProjectResponse extends IProject {
   id: number;
@@ -67,21 +67,30 @@ export type IProjectQRes = QueryResult<IProjectResponse>;
 
 export type ITechProjectQRes = QueryResult<IProjectDataAndTech>;
 
+export type ITechPRojectQuery2 = QueryResult<ITechPRojectQuery>;
+
+
+export type ITechPRojectQuery = {
+  id: number;
+  addedin: Date;
+  projectid : number;
+}
+
 export type IProjectDataAndTech = {
-  projectId: number;
-  projectName: string;
-  projectDescription: string;
-  projectEstimatedTime: string;
-  projectRepository: string;
-  technologyId: number;
-  technologyName: string;
+  projectid: number;
+  projectname: string;
+  projectdescription: string;
+  projectestimatedtime: string;
+  projectrepository: string;
+  technologyid: number;
+  technologyname: string;
 };
 
 export type INewProjInfos = {
   name: string;
   description: string;
-  estimatedTime: string;
+  estimatedtime: string;
   repository: string;
-  startDate: Date;
-  developerId: number;
+  startdate: Date;
+  developerid: number;
 };
