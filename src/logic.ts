@@ -162,11 +162,12 @@ const createProject = async (
     Object.values(payload)
   );
 
-  const queryResult: IProjectWithTechsQRes = await client.query(queryString);
-  const newProject: IProjectWithTechnologies = queryResult.rows[0];
+  const queryResult: IProjectQRes = await client.query(queryString);
+  const newProject: IProject = queryResult.rows[0];
 
   return response.status(201).json(newProject);
 };
+
 const getProjectById = async (
   request: Request,
   response: Response
@@ -320,18 +321,6 @@ VALUES
   const queryResult: ITechPRojectQuery2 = await client.query(queryString);
   const newProjectTech: ITechPRojectQuery = queryResult.rows[0];
 
-  const queryStringResponse:
-  INSERT INTO projects (projectid, technologyid)
-  VALUES (%L)
-  RETURNING projects_technologies.id, technologies.name AS technologyname,
-  projects.id AS projectid, projects.name AS projectname,
-  projects.description AS projectdescription,
-  projects.estimatedtime AS projectestimatedtime,
-  projects.repository AS projectrepository,
-  projects.startdate AS projectstartdate,
-  projects.enddate AS projectenddate;
-  `)
-
   return response.status(201).send(newProjectTech);
 };
 const deleteProjectTech = async (
@@ -416,14 +405,3 @@ export {
   postTech,
   deleteProjectTech,
 };
-/* `
-    INSERT INTO projects (projectid, technologyid)
-    VALUES (%L)
-    RETURNING projects_technologies.id, technologies.name AS technologyname,
-    projects.id AS projectid, projects.name AS projectname,
-    projects.description AS projectdescription,
-    projects.estimatedtime AS projectestimatedtime,
-    projects.repository AS projectrepository,
-    projects.startdate AS projectstartdate,
-    projects.enddate AS projectenddate;
-    `*/
